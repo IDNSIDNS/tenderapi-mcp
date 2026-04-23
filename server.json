@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.idnsidns/tenderapi-mcp",
+  "description": "MCP server for TenderAPI — French (BOAMP) and EU (TED) public procurement data (tenders, awards, winner intelligence).",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/IDNSIDNS/tenderapi-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "tenderapi-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "TENDERAPI_KEY",
+          "description": "TenderAPI key (get a free one at https://tenderapi.fr/). Sent as X-API-Key header on every REST call.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "TENDERAPI_BASE_URL",
+          "description": "Override the API base URL (default: https://tenderapi.fr). Useful for dev/staging.",
+          "isRequired": false,
+          "default": "https://tenderapi.fr"
+        }
+      ]
+    }
+  ]
+}

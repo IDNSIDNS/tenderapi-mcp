@@ -1,0 +1,31 @@
+[project]
+name = "tenderapi-mcp"
+version = "0.1.0"
+description = "MCP server for TenderAPI — French (BOAMP) and EU (TED) public procurement data"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "TenderAPI", email = "contact@tenderapi.fr" },
+]
+keywords = ["mcp", "boamp", "ted", "procurement", "api", "france", "eu"]
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://tenderapi.fr"
+Documentation = "https://tenderapi.fr/docs"
+Repository = "https://github.com/IDNSIDNS/tenderapi-mcp"
+Issues = "https://github.com/IDNSIDNS/tenderapi-mcp/issues"
+
+[project.scripts]
+tenderapi-mcp = "tenderapi_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tenderapi_mcp"]
