@@ -1,5 +1,7 @@
 # TenderAPI MCP server
 
+<!-- mcp-name: io.github.IDNSIDNS/tenderapi-mcp -->
+
 Expose TenderAPI (French BOAMP + EU TED public procurement data) as MCP tools for AI agents — Claude Desktop, Cursor, Continue, Zed, etc.
 
 A thin wrapper over the public REST API at <https://tenderapi.fr>.
