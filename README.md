@@ -82,6 +82,22 @@ See <https://tenderapi.fr/#pricing>.
 
 Override the API base URL via `TENDERAPI_BASE_URL` (default `https://tenderapi.fr`).
 
+## Changelog
+
+### 0.1.2 (2026-05-07)
+
+The underlying TenderAPI changed behaviour in ways that affect MCP clients:
+
+- **Stricter query parameters.** Unknown parameters (e.g. `q=` instead of `keyword=`) now return `400 Bad Request` with a list of valid parameters, instead of being silently ignored. Update any tool calls that relied on the old behaviour.
+- **Multi-word `keyword` search now AND-matches tokens.** `keyword=espaces verts` requires both words to appear (in title or description). Previously it required the literal substring "espaces verts".
+- **Comma-separated lists supported on `region` and `cpv`.** `region=paca,bretagne` now works as well as repeating the parameter.
+- **TED awards now expose real SIRETs** (`winner_siret`, `buyer_siret`) for ~50% of records. BOAMP SIRETs are being progressively enriched via the SIRENE register.
+- **Country codes normalised to ISO-3166-1 alpha-2** (`FR`, not `FRA`) across both BOAMP and TED awards/tenders.
+
+### 0.1.1 (2026-05-04)
+
+Initial public release on the MCP Registry.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
