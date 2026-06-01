@@ -27,129 +27,370 @@ def _headers() -> dict[str, str]:
         raise RuntimeError(
             "TENDERAPI_KEY env var is not set. Get a free key at https://tenderapi.fr/"
         )
-    return {"X-API-Key": API_KEY, "User-Agent": "tenderapi-mcp/0.1"}
+    return {"X-API-Key": API_KEY, "User-Agent": "tenderapi-mcp/0.2"}
 
 
 def _drop_none(params: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in params.items() if v is not None}
 
 
-async def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+async def _request(
+    method: str,
+    path: str,
+    params: dict[str, Any] | None = None,
+    json_body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        r = await client.get(f"{BASE_URL}{path}", params=params or {}, headers=_headers())
+        r = await client.request(
+            method,
+            f"{BASE_URL}{path}",
+            params=params or None,
+            json=json_body,
+            headers=_headers(),
+        )
     if r.status_code >= 400:
-        raise RuntimeError(f"TenderAPI {r.status_code}: {r.text[:400]}")
+        raise RuntimeError(f"TenderAPI {r.status_code} on {method} {path}: {r.text[:400]}")
+    if r.status_code == 204 or not r.content:
+        return {"ok": True}
     return r.json()
 
+
+async def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    return await _request("GET", path, params=params)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Search
+# ──────────────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
 async def search_tenders(
     cpv: str | None = None,
+    cpv_family: str | None = None,
+    keyword: str | None = None,
     region: str | None = None,
+    department: str | None = None,
+    country: str | None = None,
+    source: str | None = None,
+    status: str | None = None,
+    procedure_type: str | None = None,
+    contract_type: str | None = None,
+    buyer_siret: str | None = None,
+    buyer_keyword: str | None = None,
     budget_min: float | None = None,
     budget_max: float | None = None,
     deadline_after: str | None = None,
-    source: str | None = None,
-    status: str | None = None,
-    buyer_siret: str | None = None,
-    country: str | None = None,
+    deadline_before: str | None = None,
+    published_after: str | None = None,
+    published_before: str | None = None,
     page: int = 1,
     page_size: int = 20,
+    limit: int | None = None,
 ) -> dict[str, Any]:
     """Search public procurement tenders from BOAMP (France) and TED (EU).
 
     Returns a paginated list of tender notices matching the filters.
 
     Args:
-        cpv: CPV classification code (e.g. "72000000" for IT services).
+        cpv: Exact CPV code (e.g. "72000000" for IT services).
+        cpv_family: 2-digit CPV family prefix (e.g. "72" matches all IT-services CPVs).
+        keyword: Full-text keyword across title and description.
         region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne").
+        department: French department code (e.g. "75", "2A", "974").
+        country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP.
+        source: "boamp" (France) or "ted" (EU-wide). Omit to include both.
+        status: "open" | "closed" | "awarded" | "cancelled".
+        procedure_type: Procurement procedure (e.g. "open", "restricted", "negotiated").
+        contract_type: "works" | "supplies" | "services".
+        buyer_siret: Exact SIRET of the French contracting authority (14 digits).
+        buyer_keyword: Partial match on buyer name.
         budget_min: Minimum estimated budget, EUR.
         budget_max: Maximum estimated budget, EUR.
-        deadline_after: ISO date (YYYY-MM-DD); only tenders with submission deadline after this date.
-        source: "boamp" (France) or "ted" (EU-wide). Omit to include both.
-        status: "open" | "closed" | "awarded".
-        buyer_siret: Exact SIRET of the French contracting authority (14 digits).
-        country: ISO 3-letter country code (default FR).
+        deadline_after: ISO date (YYYY-MM-DD); submission deadline after this date.
+        deadline_before: ISO date; submission deadline before this date.
+        published_after: ISO date; published after this date.
+        published_before: ISO date; published before this date.
         page: 1-indexed page number.
-        page_size: Results per page, 1-100.
+        page_size: Results per page. Max depends on tier: 20 (free), 50 (Starter/Pro).
+        limit: Alternative to page_size, hard cap on results (server-defined max).
 
     Returns a dict with keys: total, page, page_size, results (list of tenders).
     """
     params = _drop_none({
-        "cpv": cpv, "region": region,
+        "cpv": cpv, "cpv_family": cpv_family, "keyword": keyword,
+        "region": region, "department": department, "country": country,
+        "source": source, "status": status,
+        "procedure_type": procedure_type, "contract_type": contract_type,
+        "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword,
         "budget_min": budget_min, "budget_max": budget_max,
-        "deadline_after": deadline_after, "source": source, "status": status,
-        "buyer_siret": buyer_siret, "country": country,
-        "page": page, "page_size": page_size,
+        "deadline_after": deadline_after, "deadline_before": deadline_before,
+        "published_after": published_after, "published_before": published_before,
+        "page": page, "page_size": page_size, "limit": limit,
     })
     return await _get("/tenders", params)
 
 
 @mcp.tool()
+async def get_tender(tender_id: str) -> dict[str, Any]:
+    """Fetch the full record of a single tender by its ID.
+
+    Use this after `search_tenders` to get the complete details (description,
+    documents, contact info, raw fields) of a specific notice.
+    """
+    return await _get(f"/tenders/{tender_id}")
+
+
+@mcp.tool()
 async def search_awards(
     cpv: str | None = None,
+    cpv_family: str | None = None,
     region: str | None = None,
+    department: str | None = None,
+    country: str | None = None,
+    source: str | None = None,
+    outcome: str | None = None,
     winner_name: str | None = None,
     winner_siret: str | None = None,
-    awarded_after: str | None = None,
+    buyer_siret: str | None = None,
+    buyer_keyword: str | None = None,
     amount_min: float | None = None,
-    source: str | None = None,
+    amount_max: float | None = None,
+    awarded_after: str | None = None,
+    awarded_before: str | None = None,
+    published_after: str | None = None,
+    published_before: str | None = None,
     page: int = 1,
     page_size: int = 20,
+    limit: int | None = None,
 ) -> dict[str, Any]:
     """Search award notices — who won which public contract, for how much.
 
-    Requires Starter tier or above.
+    Requires Starter tier or above. If the call returns 402/403, suggest the
+    user upgrade via `upgrade_tier`.
 
     Args:
-        cpv: CPV code filter.
-        region: Region slug.
-        winner_name: Partial match on the winning company name.
-        winner_siret: Exact SIRET match (14 digits).
-        awarded_after: ISO date; awards with an award date after this.
-        amount_min: Minimum contract amount, EUR.
+        cpv: Exact CPV code.
+        cpv_family: 2-digit CPV family prefix.
+        region: French region slug.
+        department: French department code.
+        country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"); alpha-3 also accepted for supported countries.
         source: "boamp" or "ted".
-        page / page_size: Pagination.
+        outcome: Filter by award result: "awarded" | "cancelled" (comma-separated list accepted, e.g. "awarded,cancelled").
+        winner_name: Partial match on winning company name.
+        winner_siret: Exact winner SIRET (14 digits).
+        buyer_siret: Exact buyer SIRET.
+        buyer_keyword: Partial match on buyer name.
+        amount_min: Minimum contract amount, EUR.
+        amount_max: Maximum contract amount, EUR.
+        awarded_after: ISO date; award date after this.
+        awarded_before: ISO date; award date before this.
+        published_after: ISO date.
+        published_before: ISO date.
+        page / page_size / limit: Pagination.
     """
     params = _drop_none({
-        "cpv": cpv, "region": region,
+        "cpv": cpv, "cpv_family": cpv_family,
+        "region": region, "department": department, "country": country,
+        "source": source, "outcome": outcome,
         "winner_name": winner_name, "winner_siret": winner_siret,
-        "awarded_after": awarded_after, "amount_min": amount_min,
-        "source": source, "page": page, "page_size": page_size,
+        "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword,
+        "amount_min": amount_min, "amount_max": amount_max,
+        "awarded_after": awarded_after, "awarded_before": awarded_before,
+        "published_after": published_after, "published_before": published_before,
+        "page": page, "page_size": page_size, "limit": limit,
     })
     return await _get("/awards", params)
+
+
+@mcp.tool()
+async def get_award(award_id: str) -> dict[str, Any]:
+    """Fetch the full record of a single award notice by its ID.
+
+    Requires Starter tier or above.
+    """
+    return await _get(f"/awards/{award_id}")
 
 
 @mcp.tool()
 async def winner_intel(
     cpv: str | None = None,
     region: str | None = None,
+    country: str | None = None,
     year: int | None = None,
+    winner_siret: str | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
     """Aggregated winner statistics — top companies by contract count and total amount.
 
     Requires Pro tier. Use for competitive intelligence: "which companies win
-    IT contracts in Occitanie in 2025?".
+    IT contracts in Occitanie in 2025?" or "what has SIRET 12345678901234 won
+    across all sectors?".
 
     Args:
         cpv: CPV code filter.
         region: Region slug.
+        country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"); alpha-3 also accepted for supported countries.
         year: Integer year filter (e.g. 2025).
+        winner_siret: Pin to a single company.
         limit: Top N results (default 10, max 50).
     """
-    params = _drop_none({"cpv": cpv, "region": region, "year": year, "limit": limit})
+    params = _drop_none({
+        "cpv": cpv, "region": region, "country": country,
+        "year": year, "winner_siret": winner_siret, "limit": limit,
+    })
     return await _get("/awards/winner-intel", params)
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Account / quota
+# ──────────────────────────────────────────────────────────────────────────────
+
 @mcp.tool()
 async def me() -> dict[str, Any]:
-    """Return the authenticated key's tier, quota remaining, and available features.
+    """Return the authenticated key's tier, quota, and available features.
 
     Useful for the agent to check quota before launching many calls or to pick
-    a tier-appropriate strategy.
+    a tier-appropriate strategy. Response includes `tier`, `quota_day_limit`,
+    `quota_remaining_today`, `requests_today`, `requests_month`, `features`.
     """
     return await _get("/me")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Matching profiles (webhook alerts)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+async def list_profiles() -> dict[str, Any]:
+    """List the matching profiles owned by the authenticated key.
+
+    A profile = a saved filter + webhook URL. The API pushes new tenders that
+    match the profile's criteria to the webhook automatically.
+    """
+    return await _get("/profiles")
+
+
+@mcp.tool()
+async def get_profile(profile_id: int) -> dict[str, Any]:
+    """Fetch a single matching profile by its integer ID."""
+    return await _get(f"/profiles/{profile_id}")
+
+
+@mcp.tool()
+async def create_profile(
+    name: str,
+    webhook_url: str | None = None,
+    siret: str | None = None,
+    keywords: list[str] | None = None,
+    cpv_codes: list[str] | None = None,
+    regions: list[str] | None = None,
+    departments: list[str] | None = None,
+    budget_min: float | None = None,
+    budget_max: float | None = None,
+    match_cpv_family: bool | None = None,
+) -> dict[str, Any]:
+    """Create a matching profile. New tenders matching the filters will be
+    pushed to `webhook_url` as soon as they are ingested.
+
+    At least one filter (keywords, cpv_codes, regions, departments, siret,
+    or a budget range) should be set, otherwise the profile matches everything.
+
+    Args:
+        name: Human-readable label.
+        webhook_url: HTTPS endpoint that will receive POST notifications.
+        siret: Restrict to a specific buyer.
+        keywords: List of substrings matched against title/description.
+        cpv_codes: List of exact CPV codes.
+        regions: List of French region slugs.
+        departments: List of French department codes.
+        budget_min / budget_max: Budget window in EUR.
+        match_cpv_family: If true, `cpv_codes` are treated as 2-digit family
+            prefixes (e.g. "72" matches every CPV starting with 72).
+    """
+    body = _drop_none({
+        "name": name, "webhook_url": webhook_url, "siret": siret,
+        "keywords": keywords, "cpv_codes": cpv_codes,
+        "regions": regions, "departments": departments,
+        "budget_min": budget_min, "budget_max": budget_max,
+        "match_cpv_family": match_cpv_family,
+    })
+    return await _request("POST", "/profiles", json_body=body)
+
+
+@mcp.tool()
+async def update_profile(
+    profile_id: int,
+    name: str | None = None,
+    webhook_url: str | None = None,
+    siret: str | None = None,
+    keywords: list[str] | None = None,
+    cpv_codes: list[str] | None = None,
+    regions: list[str] | None = None,
+    departments: list[str] | None = None,
+    budget_min: float | None = None,
+    budget_max: float | None = None,
+    match_cpv_family: bool | None = None,
+) -> dict[str, Any]:
+    """Replace a profile's filters and webhook. Only non-None fields are sent;
+    fields left as None keep their current value on the server.
+    """
+    body = _drop_none({
+        "name": name, "webhook_url": webhook_url, "siret": siret,
+        "keywords": keywords, "cpv_codes": cpv_codes,
+        "regions": regions, "departments": departments,
+        "budget_min": budget_min, "budget_max": budget_max,
+        "match_cpv_family": match_cpv_family,
+    })
+    return await _request("PUT", f"/profiles/{profile_id}", json_body=body)
+
+
+@mcp.tool()
+async def delete_profile(profile_id: int) -> dict[str, Any]:
+    """Delete a matching profile. Stops all future webhook deliveries for it."""
+    return await _request("DELETE", f"/profiles/{profile_id}")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Billing (tier upgrade & subscription management)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+async def upgrade_tier(
+    tier: str,
+    success_url: str | None = None,
+    cancel_url: str | None = None,
+) -> dict[str, Any]:
+    """Start a Stripe Checkout session to upgrade the authenticated key to a
+    higher tier ("starter" or "pro").
+
+    IMPORTANT: this does NOT charge anything by itself. It returns a
+    `checkout_url` that the agent MUST present to the human user — payment
+    requires the user's card on Stripe's hosted page. Once paid, the key is
+    automatically upgraded.
+
+    Use this when a tool call fails with 402/403 because the feature is gated
+    (e.g. `search_awards` and `winner_intel` need Starter+ / Pro).
+
+    Args:
+        tier: "starter" or "pro".
+        success_url: Where Stripe redirects after successful payment.
+        cancel_url: Where Stripe redirects if the user cancels.
+
+    Returns: {"checkout_url": "...", "session_id": "..."}
+    """
+    body = _drop_none({"tier": tier, "success_url": success_url, "cancel_url": cancel_url})
+    return await _request("POST", "/billing/checkout", json_body=body)
+
+
+@mcp.tool()
+async def billing_portal(return_url: str | None = None) -> dict[str, Any]:
+    """Return a Stripe Customer Portal URL for the authenticated key.
+
+    The user can manage their subscription, update payment method, download
+    invoices, or cancel. Present this URL to the human user — the agent
+    cannot interact with the portal directly.
+    """
+    return await _request("POST", "/billing/portal", params=_drop_none({"return_url": return_url}))
 
 
 def main() -> None:
