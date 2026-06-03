@@ -2,9 +2,11 @@
 
 <!-- mcp-name: io.github.IDNSIDNS/tenderapi-mcp -->
 
-Expose TenderAPI (French BOAMP + EU TED public procurement data) as MCP tools for AI agents — Claude Desktop, Cursor, Continue, Zed, etc.
+Expose TenderAPI (French BOAMP + EU TED public procurement data) as MCP tools for AI agents (Claude Desktop, Cursor, Continue, Zed, etc.).
 
 A thin wrapper over the public REST API at <https://tenderapi.fr>.
+
+Coverage: BOAMP (France) since March 2015, and TED for FR/DE/IT/ES/UK since 2015 (legacy XML format until end 2023, then eForms), refreshed daily.
 
 ## Install
 
@@ -65,16 +67,22 @@ Any MCP client supporting stdio transport. The binary `tenderapi-mcp` (installed
 
 | Tool | Tier | Description |
 |------|------|-------------|
-| `search_tenders` | Free | Search BOAMP + TED tenders with typed filters (CPV, region, budget, deadline, source…) |
+| `search_tenders` | Free | Search BOAMP + TED tenders with typed filters (CPV, region, budget, deadline, source, etc.) |
+| `get_tender` | Free | Fetch a single tender by id |
 | `search_awards` | Starter | Search award notices (who won which contract, for how much) |
-| `winner_intel` | Pro | Aggregated winner stats — top companies by CPV / region / year |
-| `me` | — | Current key tier, quota remaining, available features |
+| `get_award` | Starter | Fetch a single award by id |
+| `winner_intel` | Pro | Aggregated winner stats: top companies by CPV / region / year |
+| `me` | any | Current key tier, quota remaining, available features |
+| `list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile` | Starter | Manage webhook alert profiles for new-tender matches |
+| `upgrade_tier`, `billing_portal` | any | Stripe checkout and billing-management links |
+
+PINs (prior-information notices) are excluded from `search_tenders` by default; pass `include_planning=true` to include them. A `deadline_after`/`deadline_before` filter drops notices with no submission deadline unless `include_null_deadline=true`.
 
 ## Tiers
 
-- **Free**: 100 req/day — tenders only
-- **Starter** (5 €/mo HT): 5 000 req/day — adds awards + webhooks
-- **Pro** (15 €/mo HT): 50 000 req/day — adds winner intelligence
+- **Free**: 100 req/day, tenders only
+- **Starter** (5 €/mo HT): 1 000 req/day, adds awards + webhooks
+- **Pro** (15 €/mo HT): 3 000 req/day, adds winner intelligence
 
 See <https://tenderapi.fr/#pricing>.
 
@@ -83,6 +91,15 @@ See <https://tenderapi.fr/#pricing>.
 Override the API base URL via `TENDERAPI_BASE_URL` (default `https://tenderapi.fr`).
 
 ## Changelog
+
+### 0.4.0 (2026-06-03)
+
+- **TED coverage current for FR/DE/IT/ES/UK** (legacy XML until end 2023, eForms since), refreshed daily. Non-FR notices are no longer frozen at a historical cutoff.
+- **`search_tenders` new parameters**: `include_planning` (include TED prior-information notices, excluded by default), `include_null_deadline` and `include_null_budget` (keep rows with no deadline / no budget through the corresponding filters).
+
+### 0.2.0 and 0.3.0
+
+Maintenance releases tracking TenderAPI updates.
 
 ### 0.1.2 (2026-05-07)
 

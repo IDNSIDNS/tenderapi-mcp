@@ -72,6 +72,7 @@ async def search_tenders(
     department: str | None = None,
     country: str | None = None,
     source: str | None = None,
+    include_planning: bool = False,
     status: str | None = None,
     procedure_type: str | None = None,
     contract_type: str | None = None,
@@ -79,8 +80,10 @@ async def search_tenders(
     buyer_keyword: str | None = None,
     budget_min: float | None = None,
     budget_max: float | None = None,
+    include_null_budget: bool = False,
     deadline_after: str | None = None,
     deadline_before: str | None = None,
+    include_null_deadline: bool = False,
     published_after: str | None = None,
     published_before: str | None = None,
     page: int = 1,
@@ -98,7 +101,8 @@ async def search_tenders(
         region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne").
         department: French department code (e.g. "75", "2A", "974").
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP.
-        source: "boamp" (France) or "ted" (EU-wide). Omit to include both.
+        source: "boamp" (France) or "ted" (FR/DE/IT/ES/UK). Omit to include both.
+        include_planning: When True, include TED prior-information notices (PINs) that announce upcoming procurements. Excluded by default (not yet biddable, no deadline).
         status: "open" | "closed" | "awarded" | "cancelled".
         procedure_type: Procurement procedure (e.g. "open", "restricted", "negotiated").
         contract_type: "works" | "supplies" | "services".
@@ -106,8 +110,10 @@ async def search_tenders(
         buyer_keyword: Partial match on buyer name.
         budget_min: Minimum estimated budget, EUR.
         budget_max: Maximum estimated budget, EUR.
+        include_null_budget: When True, keep tenders with no budget through budget_min/budget_max filters. Excluded by default (budget is sparse).
         deadline_after: ISO date (YYYY-MM-DD); submission deadline after this date.
         deadline_before: ISO date; submission deadline before this date.
+        include_null_deadline: When True, keep tenders with no submission deadline through deadline_after/deadline_before filters. Excluded by default (many TED notices carry no parsed deadline).
         published_after: ISO date; published after this date.
         published_before: ISO date; published before this date.
         page: 1-indexed page number.
@@ -119,11 +125,13 @@ async def search_tenders(
     params = _drop_none({
         "cpv": cpv, "cpv_family": cpv_family, "keyword": keyword,
         "region": region, "department": department, "country": country,
-        "source": source, "status": status,
+        "source": source, "status": status, "include_planning": include_planning,
         "procedure_type": procedure_type, "contract_type": contract_type,
         "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword,
         "budget_min": budget_min, "budget_max": budget_max,
+        "include_null_budget": include_null_budget,
         "deadline_after": deadline_after, "deadline_before": deadline_before,
+        "include_null_deadline": include_null_deadline,
         "published_after": published_after, "published_before": published_before,
         "page": page, "page_size": page_size, "limit": limit,
     })
