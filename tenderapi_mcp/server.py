@@ -1,10 +1,10 @@
-"""TenderAPI MCP server — exposes BOAMP + TED procurement data as MCP tools.
+"""TenderAPI MCP server: exposes BOAMP + TED procurement data as MCP tools.
 
 Thin wrapper over the public REST API at https://tenderapi.fr.
 
 Config (env vars):
-  TENDERAPI_KEY       — required, obtain at https://tenderapi.fr/
-  TENDERAPI_BASE_URL  — optional, default https://tenderapi.fr
+  TENDERAPI_KEY       (required) obtain at https://tenderapi.fr/
+  TENDERAPI_BASE_URL  (optional) default https://tenderapi.fr
 """
 
 from __future__ import annotations
@@ -67,6 +67,7 @@ async def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any
 async def search_tenders(
     cpv: str | None = None,
     cpv_family: str | None = None,
+    descripteur: str | None = None,
     keyword: str | None = None,
     region: str | None = None,
     department: str | None = None,
@@ -97,6 +98,7 @@ async def search_tenders(
     Args:
         cpv: Exact CPV code (e.g. "72000000" for IT services).
         cpv_family: 2-digit CPV family prefix (e.g. "72" matches all IT-services CPVs).
+        descripteur: BOAMP business descripteur(s), comma-separated (e.g. "couverture" or "etude,btp"). Case-insensitive substring match; targets MAPA notices that carry no CPV code.
         keyword: Full-text keyword across title and description.
         region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne").
         department: French department code (e.g. "75", "2A", "974").
@@ -123,7 +125,7 @@ async def search_tenders(
     Returns a dict with keys: total, page, page_size, results (list of tenders).
     """
     params = _drop_none({
-        "cpv": cpv, "cpv_family": cpv_family, "keyword": keyword,
+        "cpv": cpv, "cpv_family": cpv_family, "descripteur": descripteur, "keyword": keyword,
         "region": region, "department": department, "country": country,
         "source": source, "status": status, "include_planning": include_planning,
         "procedure_type": procedure_type, "contract_type": contract_type,
@@ -152,6 +154,7 @@ async def get_tender(tender_id: str) -> dict[str, Any]:
 async def search_awards(
     cpv: str | None = None,
     cpv_family: str | None = None,
+    descripteur: str | None = None,
     region: str | None = None,
     department: str | None = None,
     country: str | None = None,
@@ -161,6 +164,7 @@ async def search_awards(
     winner_siret: str | None = None,
     buyer_siret: str | None = None,
     buyer_keyword: str | None = None,
+    keyword: str | None = None,
     amount_min: float | None = None,
     amount_max: float | None = None,
     awarded_after: str | None = None,
@@ -171,7 +175,7 @@ async def search_awards(
     page_size: int = 20,
     limit: int | None = None,
 ) -> dict[str, Any]:
-    """Search award notices — who won which public contract, for how much.
+    """Search award notices: who won which public contract, for how much.
 
     Requires Starter tier or above. If the call returns 402/403, suggest the
     user upgrade via `upgrade_tier`.
@@ -179,6 +183,7 @@ async def search_awards(
     Args:
         cpv: Exact CPV code.
         cpv_family: 2-digit CPV family prefix.
+        descripteur: BOAMP business descripteur(s), comma-separated; substring match for notices without a CPV code.
         region: French region slug.
         department: French department code.
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"); alpha-3 also accepted for supported countries.
@@ -188,6 +193,7 @@ async def search_awards(
         winner_siret: Exact winner SIRET (14 digits).
         buyer_siret: Exact buyer SIRET.
         buyer_keyword: Partial match on buyer name.
+        keyword: Full-text keyword across the award notice text.
         amount_min: Minimum contract amount, EUR.
         amount_max: Maximum contract amount, EUR.
         awarded_after: ISO date; award date after this.
@@ -197,11 +203,11 @@ async def search_awards(
         page / page_size / limit: Pagination.
     """
     params = _drop_none({
-        "cpv": cpv, "cpv_family": cpv_family,
+        "cpv": cpv, "cpv_family": cpv_family, "descripteur": descripteur,
         "region": region, "department": department, "country": country,
         "source": source, "outcome": outcome,
         "winner_name": winner_name, "winner_siret": winner_siret,
-        "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword,
+        "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword, "keyword": keyword,
         "amount_min": amount_min, "amount_max": amount_max,
         "awarded_after": awarded_after, "awarded_before": awarded_before,
         "published_after": published_after, "published_before": published_before,
@@ -222,13 +228,14 @@ async def get_award(award_id: str) -> dict[str, Any]:
 @mcp.tool()
 async def winner_intel(
     cpv: str | None = None,
+    cpv_family: str | None = None,
     region: str | None = None,
     country: str | None = None,
     year: int | None = None,
     winner_siret: str | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Aggregated winner statistics — top companies by contract count and total amount.
+    """Aggregated winner statistics: top companies by contract count and total amount.
 
     Requires Pro tier. Use for competitive intelligence: "which companies win
     IT contracts in Occitanie in 2025?" or "what has SIRET 12345678901234 won
@@ -236,6 +243,7 @@ async def winner_intel(
 
     Args:
         cpv: CPV code filter.
+        cpv_family: 2-digit CPV family prefix filter.
         region: Region slug.
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"); alpha-3 also accepted for supported countries.
         year: Integer year filter (e.g. 2025).
@@ -243,7 +251,7 @@ async def winner_intel(
         limit: Top N results (default 10, max 50).
     """
     params = _drop_none({
-        "cpv": cpv, "region": region, "country": country,
+        "cpv": cpv, "cpv_family": cpv_family, "region": region, "country": country,
         "year": year, "winner_siret": winner_siret, "limit": limit,
     })
     return await _get("/awards/winner-intel", params)
@@ -372,7 +380,7 @@ async def upgrade_tier(
     higher tier ("starter" or "pro").
 
     IMPORTANT: this does NOT charge anything by itself. It returns a
-    `checkout_url` that the agent MUST present to the human user — payment
+    `checkout_url` that the agent MUST present to the human user. Payment
     requires the user's card on Stripe's hosted page. Once paid, the key is
     automatically upgraded.
 
@@ -395,14 +403,14 @@ async def billing_portal(return_url: str | None = None) -> dict[str, Any]:
     """Return a Stripe Customer Portal URL for the authenticated key.
 
     The user can manage their subscription, update payment method, download
-    invoices, or cancel. Present this URL to the human user — the agent
+    invoices, or cancel. Present this URL to the human user; the agent
     cannot interact with the portal directly.
     """
     return await _request("POST", "/billing/portal", params=_drop_none({"return_url": return_url}))
 
 
 def main() -> None:
-    """CLI entry point — starts the MCP server over stdio."""
+    """CLI entry point that starts the MCP server over stdio."""
     mcp.run()
 
 

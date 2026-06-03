@@ -117,4 +117,4 @@ Initial public release on the MCP Registry.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).

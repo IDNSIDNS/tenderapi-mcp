@@ -1,7 +1,7 @@
 [project]
 name = "tenderapi-mcp"
 version = "0.4.0"
-description = "MCP server for TenderAPI — French (BOAMP) and EU (TED) public procurement data"
+description = "MCP server for TenderAPI: French (BOAMP) and EU (TED) public procurement data"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
