@@ -169,6 +169,7 @@ async def search_awards(
     amount_max: float | None = None,
     awarded_after: str | None = None,
     awarded_before: str | None = None,
+    has_parent_tender: bool | None = None,
     published_after: str | None = None,
     published_before: str | None = None,
     page: int = 1,
@@ -198,6 +199,7 @@ async def search_awards(
         amount_max: Maximum contract amount, EUR.
         awarded_after: ISO date; award date after this.
         awarded_before: ISO date; award date before this.
+        has_parent_tender: Filter by linkage to the originating tender (AO). True = only awards linked to their tender; False = only standalone awards (negotiated/direct procedures with no published prior notice). Omit for all.
         published_after: ISO date.
         published_before: ISO date.
         page / page_size / limit: Pagination.
@@ -210,6 +212,7 @@ async def search_awards(
         "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword, "keyword": keyword,
         "amount_min": amount_min, "amount_max": amount_max,
         "awarded_after": awarded_after, "awarded_before": awarded_before,
+        "has_parent_tender": has_parent_tender,
         "published_after": published_after, "published_before": published_before,
         "page": page, "page_size": page_size, "limit": limit,
     })
@@ -301,15 +304,19 @@ async def create_profile(
     cpv_codes: list[str] | None = None,
     regions: list[str] | None = None,
     departments: list[str] | None = None,
+    descripteur_keywords: list[str] | None = None,
     budget_min: float | None = None,
     budget_max: float | None = None,
     match_cpv_family: bool | None = None,
+    match_descripteur: bool | None = None,
+    active: bool | None = None,
 ) -> dict[str, Any]:
     """Create a matching profile. New tenders matching the filters will be
     pushed to `webhook_url` as soon as they are ingested.
 
     At least one filter (keywords, cpv_codes, regions, departments, siret,
-    or a budget range) should be set, otherwise the profile matches everything.
+    descripteur_keywords, or a budget range) should be set, otherwise the
+    profile matches everything.
 
     Args:
         name: Human-readable label.
@@ -319,16 +326,21 @@ async def create_profile(
         cpv_codes: List of exact CPV codes.
         regions: List of French region slugs.
         departments: List of French department codes.
+        descripteur_keywords: List of BOAMP business descripteurs (max 20); requires match_descripteur=True. Targets MAPA notices that carry no CPV code.
         budget_min / budget_max: Budget window in EUR.
         match_cpv_family: If true, `cpv_codes` are treated as 2-digit family
             prefixes (e.g. "72" matches every CPV starting with 72).
+        match_descripteur: If true, enable matching on `descripteur_keywords` (default false).
+        active: Whether the profile is active (default true). Set false to pause webhook deliveries without deleting it.
     """
     body = _drop_none({
         "name": name, "webhook_url": webhook_url, "siret": siret,
         "keywords": keywords, "cpv_codes": cpv_codes,
         "regions": regions, "departments": departments,
+        "descripteur_keywords": descripteur_keywords,
         "budget_min": budget_min, "budget_max": budget_max,
-        "match_cpv_family": match_cpv_family,
+        "match_cpv_family": match_cpv_family, "match_descripteur": match_descripteur,
+        "active": active,
     })
     return await _request("POST", "/profiles", json_body=body)
 
@@ -343,19 +355,28 @@ async def update_profile(
     cpv_codes: list[str] | None = None,
     regions: list[str] | None = None,
     departments: list[str] | None = None,
+    descripteur_keywords: list[str] | None = None,
     budget_min: float | None = None,
     budget_max: float | None = None,
     match_cpv_family: bool | None = None,
+    match_descripteur: bool | None = None,
+    active: bool | None = None,
 ) -> dict[str, Any]:
     """Replace a profile's filters and webhook. Only non-None fields are sent;
     fields left as None keep their current value on the server.
+
+    `descripteur_keywords` (with `match_descripteur=True`) matches MAPA notices
+    that carry no CPV code. `active=False` pauses webhook deliveries without
+    deleting the profile.
     """
     body = _drop_none({
         "name": name, "webhook_url": webhook_url, "siret": siret,
         "keywords": keywords, "cpv_codes": cpv_codes,
         "regions": regions, "departments": departments,
+        "descripteur_keywords": descripteur_keywords,
         "budget_min": budget_min, "budget_max": budget_max,
-        "match_cpv_family": match_cpv_family,
+        "match_cpv_family": match_cpv_family, "match_descripteur": match_descripteur,
+        "active": active,
     })
     return await _request("PUT", f"/profiles/{profile_id}", json_body=body)
 
