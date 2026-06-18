@@ -15,6 +15,8 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
+from . import __version__
+
 BASE_URL = os.getenv("TENDERAPI_BASE_URL", "https://tenderapi.fr").rstrip("/")
 API_KEY = os.getenv("TENDERAPI_KEY", "")
 TIMEOUT = float(os.getenv("TENDERAPI_TIMEOUT", "30"))
@@ -27,7 +29,7 @@ def _headers() -> dict[str, str]:
         raise RuntimeError(
             "TENDERAPI_KEY env var is not set. Get a free key at https://tenderapi.fr/"
         )
-    return {"X-API-Key": API_KEY, "User-Agent": "tenderapi-mcp/0.2"}
+    return {"X-API-Key": API_KEY, "User-Agent": f"tenderapi-mcp/{__version__}"}
 
 
 def _drop_none(params: dict[str, Any]) -> dict[str, Any]:
@@ -99,7 +101,7 @@ async def search_tenders(
         cpv: Exact CPV code (e.g. "72000000" for IT services).
         cpv_family: 2-digit CPV family prefix (e.g. "72" matches all IT-services CPVs).
         descripteur: BOAMP business descripteur(s), comma-separated (e.g. "couverture" or "etude,btp"). Case-insensitive substring match; targets MAPA notices that carry no CPV code.
-        keyword: Full-text keyword across title and description.
+        keyword: Full-text search across title and description (accent-insensitive). Words are combined with AND — every word must appear in the SAME notice, so a long space-separated list (e.g. "bathymetric hydrographic survey lidar coastal") almost always returns zero results. For a broad topic search, join synonyms with the OR operator instead, e.g. keyword=bathymétrie OR hydrographie OR lidar OR dredging. TED notices are indexed in their publication language (FR/DE/ES/IT/EN), so include each concept in the relevant languages joined by OR. Comma- or pipe-separated lists are NOT parsed as OR.
         region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne").
         department: French department code (e.g. "75", "2A", "974").
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP.
@@ -194,7 +196,7 @@ async def search_awards(
         winner_siret: Exact winner SIRET (14 digits).
         buyer_siret: Exact buyer SIRET.
         buyer_keyword: Partial match on buyer name.
-        keyword: Full-text keyword across the award notice text.
+        keyword: Full-text search across the award notice text (accent-insensitive). Words are combined with AND — every word must appear in the same notice. Join synonyms with the OR operator for a broad search, e.g. keyword=dragage OR dredging OR draguage. Comma- or pipe-separated lists are NOT parsed as OR.
         amount_min: Minimum contract amount, EUR.
         amount_max: Maximum contract amount, EUR.
         awarded_after: ISO date; award date after this.
