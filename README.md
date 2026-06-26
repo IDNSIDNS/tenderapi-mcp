@@ -8,7 +8,7 @@ A thin wrapper over the public REST API at <https://tenderapi.fr>.
 
 Coverage: BOAMP (France) since March 2015, and TED for FR/DE/IT/ES/UK since 2015 (legacy XML format until end 2023, then eForms), refreshed daily.
 
-## Install
+## Install 
 
 Requires Python 3.10+.
 
