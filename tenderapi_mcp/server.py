@@ -278,15 +278,16 @@ async def me() -> dict[str, Any]:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Matching profiles (webhook alerts)
+# Matching profiles (email & webhook alerts)
 # ──────────────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
 async def list_profiles() -> dict[str, Any]:
     """List the matching profiles owned by the authenticated key.
 
-    A profile = a saved filter + webhook URL. The API pushes new tenders that
-    match the profile's criteria to the webhook automatically.
+    A profile = a saved filter + a delivery channel. New tenders matching the
+    profile's criteria are delivered automatically, either as a daily EMAIL
+    digest (channel="email") or pushed to a WEBHOOK (channel="webhook").
     """
     return await _get("/profiles")
 
@@ -300,7 +301,9 @@ async def get_profile(profile_id: int) -> dict[str, Any]:
 @mcp.tool()
 async def create_profile(
     name: str,
+    channel: str | None = None,
     webhook_url: str | None = None,
+    email_to: str | None = None,
     siret: str | None = None,
     keywords: list[str] | None = None,
     cpv_codes: list[str] | None = None,
@@ -313,8 +316,9 @@ async def create_profile(
     match_descripteur: bool | None = None,
     active: bool | None = None,
 ) -> dict[str, Any]:
-    """Create a matching profile. New tenders matching the filters will be
-    pushed to `webhook_url` as soon as they are ingested.
+    """Create a matching profile. New tenders matching the filters are delivered
+    automatically as a daily EMAIL digest (channel="email") or pushed to a
+    WEBHOOK (channel="webhook").
 
     At least one filter (keywords, cpv_codes, regions, departments, siret,
     descripteur_keywords, or a budget range) should be set, otherwise the
@@ -322,7 +326,10 @@ async def create_profile(
 
     Args:
         name: Human-readable label.
-        webhook_url: HTTPS endpoint that will receive POST notifications.
+        channel: "email" for a daily email digest, or "webhook" for HTTP push.
+            Defaults to "webhook" server-side if omitted.
+        webhook_url: HTTPS endpoint that will receive POST notifications (for channel="webhook").
+        email_to: Recipient address for the daily digest (for channel="email").
         siret: Restrict to a specific buyer.
         keywords: List of substrings matched against title/description.
         cpv_codes: List of exact CPV codes.
@@ -336,7 +343,8 @@ async def create_profile(
         active: Whether the profile is active (default true). Set false to pause webhook deliveries without deleting it.
     """
     body = _drop_none({
-        "name": name, "webhook_url": webhook_url, "siret": siret,
+        "name": name, "channel": channel, "webhook_url": webhook_url,
+        "email_to": email_to, "siret": siret,
         "keywords": keywords, "cpv_codes": cpv_codes,
         "regions": regions, "departments": departments,
         "descripteur_keywords": descripteur_keywords,
@@ -351,7 +359,9 @@ async def create_profile(
 async def update_profile(
     profile_id: int,
     name: str | None = None,
+    channel: str | None = None,
     webhook_url: str | None = None,
+    email_to: str | None = None,
     siret: str | None = None,
     keywords: list[str] | None = None,
     cpv_codes: list[str] | None = None,
@@ -372,7 +382,8 @@ async def update_profile(
     deleting the profile.
     """
     body = _drop_none({
-        "name": name, "webhook_url": webhook_url, "siret": siret,
+        "name": name, "channel": channel, "webhook_url": webhook_url,
+        "email_to": email_to, "siret": siret,
         "keywords": keywords, "cpv_codes": cpv_codes,
         "regions": regions, "departments": departments,
         "descripteur_keywords": descripteur_keywords,
