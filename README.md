@@ -73,7 +73,7 @@ Any MCP client supporting stdio transport. The binary `tenderapi-mcp` (installed
 | `get_award` | Starter | Fetch a single award by id |
 | `winner_intel` | Pro | Aggregated winner stats: top companies by CPV / region / year |
 | `me` | any | Current key tier, quota remaining, available features |
-| `list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile` | Starter | Manage alert profiles (daily email digest or webhook) for new-tender matches |
+| `list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile` | Starter | Manage alert profiles (daily email digest, Teams card, or webhook) for new-tender matches |
 | `upgrade_tier`, `billing_portal` | any | Stripe checkout and billing-management links |
 
 PINs (prior-information notices) are excluded from `search_tenders` by default; pass `include_planning=true` to include them. A `deadline_after`/`deadline_before` filter drops notices with no submission deadline unless `include_null_deadline=true`.
@@ -81,7 +81,7 @@ PINs (prior-information notices) are excluded from `search_tenders` by default; 
 ## Tiers
 
 - **Free**: 100 req/day, tenders only
-- **Starter** (5 €/mo HT): 1 000 req/day, adds awards + alert profiles (email digest or webhook)
+- **Starter** (5 €/mo HT): 1 000 req/day, adds awards + alert profiles (email digest, Teams or webhook)
 - **Pro** (15 €/mo HT): 3 000 req/day, adds winner intelligence
 
 See <https://tenderapi.fr/#pricing>.

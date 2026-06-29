@@ -286,8 +286,9 @@ async def list_profiles() -> dict[str, Any]:
     """List the matching profiles owned by the authenticated key.
 
     A profile = a saved filter + a delivery channel. New tenders matching the
-    profile's criteria are delivered automatically, either as a daily EMAIL
-    digest (channel="email") or pushed to a WEBHOOK (channel="webhook").
+    profile's criteria are delivered automatically: a daily EMAIL digest
+    (channel="email"), an Adaptive Card to Microsoft TEAMS (channel="teams"),
+    or a per-tender push to a WEBHOOK (channel="webhook").
     """
     return await _get("/profiles")
 
@@ -317,8 +318,8 @@ async def create_profile(
     active: bool | None = None,
 ) -> dict[str, Any]:
     """Create a matching profile. New tenders matching the filters are delivered
-    automatically as a daily EMAIL digest (channel="email") or pushed to a
-    WEBHOOK (channel="webhook").
+    automatically as a daily EMAIL digest (channel="email"), an Adaptive Card to
+    Microsoft TEAMS (channel="teams"), or pushed to a WEBHOOK (channel="webhook").
 
     At least one filter (keywords, cpv_codes, regions, departments, siret,
     descripteur_keywords, or a budget range) should be set, otherwise the
@@ -326,9 +327,10 @@ async def create_profile(
 
     Args:
         name: Human-readable label.
-        channel: "email" for a daily email digest, or "webhook" for HTTP push.
-            Defaults to "webhook" server-side if omitted.
-        webhook_url: HTTPS endpoint that will receive POST notifications (for channel="webhook").
+        channel: "email" (daily email digest), "teams" (Adaptive Card to a Teams
+            workflow URL), or "webhook" (per-tender HTTP push). Defaults to "webhook" if omitted.
+        webhook_url: Destination URL for channel="webhook" (JSON POST) or channel="teams"
+            (paste the Teams workflow's incoming POST URL).
         email_to: Recipient address for the daily digest (for channel="email").
         siret: Restrict to a specific buyer.
         keywords: List of substrings matched against title/description.
