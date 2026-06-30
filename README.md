@@ -81,8 +81,8 @@ PINs (prior-information notices) are excluded from `search_tenders` by default; 
 ## Tiers
 
 - **Free**: 100 req/day, tenders only
-- **Starter** (5 €/mo HT): 1 000 req/day, adds awards + alert profiles (email digest, Teams or webhook)
-- **Pro** (15 €/mo HT): 3 000 req/day, adds winner intelligence
+- **Starter** (5 €/mo HT): 500 req/day, adds awards + alert profiles (email digest, Teams or webhook)
+- **Pro** (15 €/mo HT): 1 500 req/day, adds winner intelligence
 
 See <https://tenderapi.fr/#pricing>.
 
