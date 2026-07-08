@@ -89,6 +89,7 @@ async def search_tenders(
     include_null_deadline: bool = False,
     published_after: str | None = None,
     published_before: str | None = None,
+    sort: str | None = None,
     page: int = 1,
     page_size: int = 20,
     limit: int | None = None,
@@ -120,6 +121,7 @@ async def search_tenders(
         include_null_deadline: When True, keep tenders with no submission deadline through deadline_after/deadline_before filters. Excluded by default (many TED notices carry no parsed deadline).
         published_after: ISO date; published after this date.
         published_before: ISO date; published before this date.
+        sort: "date" (default — newest first) or "relevance" (BM25 best-match ranking; requires keyword; title matches outweigh description matches 5:1). With "relevance" each result carries a relevance_score (higher = better match, only comparable within one query). Prefer "relevance" when the user wants the most pertinent notices for a topic rather than the most recent ones.
         page: 1-indexed page number.
         page_size: Results per page. Max depends on tier: 20 (free), 50 (Starter/Pro).
         limit: Alternative to page_size, hard cap on results (server-defined max).
@@ -137,6 +139,7 @@ async def search_tenders(
         "deadline_after": deadline_after, "deadline_before": deadline_before,
         "include_null_deadline": include_null_deadline,
         "published_after": published_after, "published_before": published_before,
+        "sort": sort,
         "page": page, "page_size": page_size, "limit": limit,
     })
     return await _get("/tenders", params)
@@ -174,6 +177,7 @@ async def search_awards(
     has_parent_tender: bool | None = None,
     published_after: str | None = None,
     published_before: str | None = None,
+    sort: str | None = None,
     page: int = 1,
     page_size: int = 20,
     limit: int | None = None,
@@ -204,6 +208,7 @@ async def search_awards(
         has_parent_tender: Filter by linkage to the originating tender (AO). True = only awards linked to their tender; False = only standalone awards (negotiated/direct procedures with no published prior notice). Omit for all.
         published_after: ISO date.
         published_before: ISO date.
+        sort: "date" (default — newest first) or "relevance" (BM25 best-match ranking; requires keyword; winner-name matches rank highest, then buyer name, then descripteur — ideal when searching awards by company name). With "relevance" each result carries a relevance_score (higher = better match, only comparable within one query).
         page / page_size / limit: Pagination.
     """
     params = _drop_none({
@@ -216,6 +221,7 @@ async def search_awards(
         "awarded_after": awarded_after, "awarded_before": awarded_before,
         "has_parent_tender": has_parent_tender,
         "published_after": published_after, "published_before": published_before,
+        "sort": sort,
         "page": page, "page_size": page_size, "limit": limit,
     })
     return await _get("/awards", params)
