@@ -103,7 +103,7 @@ async def search_tenders(
         cpv_family: 2-digit CPV family prefix (e.g. "72" matches all IT-services CPVs).
         descripteur: BOAMP business descripteur(s), comma-separated (e.g. "couverture" or "etude,btp"). Case-insensitive substring match; targets MAPA notices that carry no CPV code.
         keyword: Full-text search across title and description (accent-insensitive). Words are combined with AND — every word must appear in the SAME notice, so a long space-separated list (e.g. "bathymetric hydrographic survey lidar coastal") almost always returns zero results. For a broad topic search, join synonyms with the OR operator instead, e.g. keyword=bathymétrie OR hydrographie OR lidar OR dredging. TED notices are indexed in their publication language (FR/DE/ES/IT/EN), so include each concept in the relevant languages joined by OR. Comma- or pipe-separated lists are NOT parsed as OR.
-        region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne").
+        region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne"). Pre-2016 region names and INSEE region codes ("11", "76", "84") are accepted as aliases.
         department: French department code (e.g. "75", "2A", "974").
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP.
         source: "boamp" (France) or "ted" (FR/DE/IT/ES/UK). Omit to include both.
@@ -167,6 +167,7 @@ async def search_awards(
     outcome: str | None = None,
     winner_name: str | None = None,
     winner_siret: str | None = None,
+    winner_siren: str | None = None,
     buyer_siret: str | None = None,
     buyer_keyword: str | None = None,
     keyword: str | None = None,
@@ -191,13 +192,14 @@ async def search_awards(
         cpv: Exact CPV code.
         cpv_family: 2-digit CPV family prefix.
         descripteur: BOAMP business descripteur(s), comma-separated; substring match for notices without a CPV code.
-        region: French region slug.
+        region: French region slug (INSEE region codes like "11" accepted).
         department: French department code.
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"); alpha-3 also accepted for supported countries.
         source: "boamp" or "ted".
         outcome: Filter by award result: "awarded" | "cancelled" (comma-separated list accepted, e.g. "awarded,cancelled").
         winner_name: Partial match on winning company name.
-        winner_siret: Exact winner SIRET (14 digits).
+        winner_siret: Exact winner SIRET (14 digits — one establishment).
+        winner_siren: Winner SIREN (9 digits — company level; matches every establishment of the company). Prefer this to aggregate a whole group.
         buyer_siret: Exact buyer SIRET.
         buyer_keyword: Partial match on buyer name.
         keyword: Full-text search across the award notice text (accent-insensitive). Words are combined with AND — every word must appear in the same notice. Join synonyms with the OR operator for a broad search, e.g. keyword=dragage OR dredging OR draguage. Comma- or pipe-separated lists are NOT parsed as OR.
@@ -216,6 +218,7 @@ async def search_awards(
         "region": region, "department": department, "country": country,
         "source": source, "outcome": outcome,
         "winner_name": winner_name, "winner_siret": winner_siret,
+        "winner_siren": winner_siren,
         "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword, "keyword": keyword,
         "amount_min": amount_min, "amount_max": amount_max,
         "awarded_after": awarded_after, "awarded_before": awarded_before,
@@ -244,6 +247,7 @@ async def winner_intel(
     country: str | None = None,
     year: int | None = None,
     winner_siret: str | None = None,
+    winner_siren: str | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
     """Aggregated winner statistics: top companies by contract count and total amount.
@@ -255,15 +259,17 @@ async def winner_intel(
     Args:
         cpv: CPV code filter.
         cpv_family: 2-digit CPV family prefix filter.
-        region: Region slug.
+        region: Region slug (INSEE region codes like "11" accepted).
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"); alpha-3 also accepted for supported countries.
         year: Integer year filter (e.g. 2025).
-        winner_siret: Pin to a single company.
+        winner_siret: Pin to a single establishment (14-digit SIRET).
+        winner_siren: Pin to a whole company (9-digit SIREN — aggregates all its establishments).
         limit: Top N results (default 10, max 50).
     """
     params = _drop_none({
         "cpv": cpv, "cpv_family": cpv_family, "region": region, "country": country,
-        "year": year, "winner_siret": winner_siret, "limit": limit,
+        "year": year, "winner_siret": winner_siret, "winner_siren": winner_siren,
+        "limit": limit,
     })
     return await _get("/awards/winner-intel", params)
 
