@@ -126,7 +126,19 @@ async def search_tenders(
         page_size: Results per page. Max depends on tier: 20 (free), 50 (Starter/Pro).
         limit: Alternative to page_size, hard cap on results (server-defined max).
 
-    Returns a dict with keys: total, page, page_size, results (list of tenders).
+    Returns a dict with keys: total, page, page_size, results (list of tenders),
+    and — when the server has something to say about the query itself — `hint`
+    and/or `warning`.
+
+    ALWAYS read `hint` when `total` is 0, and act on it before reporting "no
+    results" to the user. It is not decoration: the server has already measured
+    why the query came back empty and names the fix. Common cases: a date filter
+    hides rows that exist ("without it the same query matches 23" — re-run with
+    include_null_deadline=true or widened bounds), every word of a multi-word
+    keyword must appear in the same notice (re-run with OR between synonyms), or
+    the term is indexed in another publication language (re-run with the term in
+    FR/DE/ES/IT/EN joined by OR). A 0-result answer that had a hint and did not
+    follow it is a wrong answer.
     """
     params = _drop_none({
         "cpv": cpv, "cpv_family": cpv_family, "descripteur": descripteur, "keyword": keyword,
@@ -212,6 +224,20 @@ async def search_awards(
         published_before: ISO date.
         sort: "date" (default — newest first) or "relevance" (BM25 best-match ranking; requires keyword; winner-name matches rank highest, then buyer name, then descripteur — ideal when searching awards by company name). With "relevance" each result carries a relevance_score (higher = better match, only comparable within one query).
         page / page_size / limit: Pagination.
+
+    Returns a dict with keys: total, page, page_size, results (list of awards),
+    plus `hint` / `warning` when the server can explain the query, and
+    `locked` / `upgrade` on tiers without award access.
+
+    ALWAYS read `hint` when `total` is 0 — see search_tenders for what it does
+    and why acting on it matters.
+
+    `locked: true` means award ROWS require the Starter tier or higher; `total`
+    is still the exact, unfiltered match count. Report it faithfully: say the
+    rows are gated and give the count, do not present it as "no results found".
+    Note that `locked` with `total: 0` means the query itself matched nothing —
+    the tier is not the obstacle there, so fix the query first (via `hint`)
+    before suggesting an upgrade. Use `upgrade_tier` only if the user asks.
     """
     params = _drop_none({
         "cpv": cpv, "cpv_family": cpv_family, "descripteur": descripteur,
