@@ -13,7 +13,10 @@ import os
 from typing import Any
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+# mcp 2.0 (2026-07-28) removed `mcp.server.fastmcp`. `MCPServer` is its direct
+# successor: same decorators, same constructor fields. Only transport configuration
+# moved to `streamable_http_app()`, which this stdio server does not use.
+from mcp.server import MCPServer
 
 from . import __version__
 
@@ -21,7 +24,10 @@ BASE_URL = os.getenv("TENDERAPI_BASE_URL", "https://tenderapi.fr").rstrip("/")
 API_KEY = os.getenv("TENDERAPI_KEY", "")
 TIMEOUT = float(os.getenv("TENDERAPI_TIMEOUT", "30"))
 
-mcp = FastMCP("tenderapi")
+# `version` also fixes a long-standing defect: FastMCP took no version argument, so
+# `serverInfo.version` announced the MCP SDK's version instead of ours to every client
+# and directory that called `initialize`.
+mcp = MCPServer("tenderapi", version=__version__)
 
 
 def _headers() -> dict[str, str]:

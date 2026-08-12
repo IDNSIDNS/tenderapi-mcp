@@ -1,6 +1,6 @@
 [project]
 name = "tenderapi-mcp"
-version = "0.7.4"
+version = "0.8.0"
 description = "MCP server for TenderAPI: French (BOAMP) and EU (TED) public procurement data"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -10,10 +10,12 @@ authors = [
 ]
 keywords = ["mcp", "boamp", "ted", "procurement", "api", "france", "eu"]
 dependencies = [
-    # mcp 2.0.0 (2026-07-28) a supprime `mcp.server.fastmcp` et remplace FastMCP
-    # par MCPServer : l'import de server.py plante a l'installation. Tant que la
-    # migration vers l'API 2.x n'est pas faite, on reste sur la ligne 1.x.
-    "mcp>=1.0.0,<2.0.0",
+    # Migre vers l'API MCPServer de mcp 2.x le 2026-08-12. L'epinglage `<2.0.0` pose
+    # le 09/08 etait un correctif d'urgence : il rendait le paquet reinstallable, mais
+    # au prix d'une RETROGRADATION silencieuse de mcp en 1.29 dans tout environnement
+    # ou 2.x etait deja installe — mesure au `pip install --dry-run`. Les versions
+    # 0.7.x restent disponibles pour qui doit rester sur la ligne 1.x.
+    "mcp>=2.0.0",
     "httpx>=0.27",
 ]
 
