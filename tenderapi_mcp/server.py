@@ -127,7 +127,7 @@ async def search_tenders(
         include_null_deadline: When True, keep tenders with no submission deadline through deadline_after/deadline_before filters. Excluded by default (many TED notices carry no parsed deadline).
         published_after: ISO date; published after this date.
         published_before: ISO date; published before this date.
-        sort: "date" (default — newest first) or "relevance" (BM25 best-match ranking; requires keyword; title matches outweigh description matches 5:1). With "relevance" each result carries a relevance_score (higher = better match, only comparable within one query). Prefer "relevance" when the user wants the most pertinent notices for a topic rather than the most recent ones.
+        sort: "date" (default — newest first) or "relevance" (BM25 best-match ranking; requires keyword; title matches outweigh description matches 5:1). With "relevance" each result carries a relevance_score (higher = better match, only comparable within one query). Prefer "relevance" when the user wants the most pertinent notices for a topic rather than the most recent ones. "deadline" lists the soonest submission deadline first, notices without a deadline last; use it when the user asks what closes soon, and combine it with status="open" or deadline_after, otherwise the list starts with notices that closed years ago.
         page: 1-indexed page number.
         page_size: Results per page. Max depends on tier: 20 (free), 50 (Starter/Pro).
         limit: Alternative to page_size, hard cap on results (server-defined max).
