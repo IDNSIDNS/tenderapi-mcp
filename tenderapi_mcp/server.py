@@ -114,7 +114,7 @@ async def search_tenders(
         country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP.
         source: "boamp" (France) or "ted" (FR/DE/IT/ES/UK). Omit to include both.
         include_planning: When True, include TED prior-information notices (PINs) that announce upcoming procurements. Excluded by default (not yet biddable, no deadline).
-        status: "open" | "closed" | "awarded" | "cancelled".
+        status: "open" or "closed", nothing else. "open" = submission deadline in the future, or unknown on a notice still published. Awarded contracts are not a tender status: use search_awards for those.
         procedure_type: Procurement procedure (e.g. "open", "restricted", "negotiated").
         contract_type: "works" | "supplies" | "services".
         buyer_siret: Exact SIRET of the French contracting authority (14 digits).
