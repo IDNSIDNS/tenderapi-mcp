@@ -85,6 +85,7 @@ Any MCP client supporting stdio transport works. The `tenderapi-mcp` binary inst
 | `search_awards` | Pro | — | Search award notices (who won which contract, for how much) |
 | `get_award` | Pro | — | Fetch a single award by id |
 | `winner_intel` | Pro | — | Aggregated winner stats: top companies by CPV / region / year |
+| `search_renewals` | Pro | — | Contracts reaching their declared end date (DECP), i.e. coming back to tender in 3-18 months, with current holder |
 | `me` | any | — | Current key tier, quota remaining, available features |
 | `list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile` | Free (1, weekly email) / Pro | — | Manage alert profiles for new-tender matches: weekly email on a free key; daily email digest, Teams card or webhook on Pro |
 | `upgrade_tier`, `billing_portal` | any | — | Stripe checkout and billing-management links |

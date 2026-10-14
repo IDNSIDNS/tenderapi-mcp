@@ -307,6 +307,49 @@ async def winner_intel(
     return await _get("/awards/winner-intel", params)
 
 
+@mcp.tool()
+async def search_renewals(
+    department: str | None = None,
+    cpv: str | None = None,
+    cpv_family: str | None = None,
+    buyer_siret: str | None = None,
+    buyer_keyword: str | None = None,
+    min_months: int = 3,
+    max_months: int = 18,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict[str, Any]:
+    """French public contracts reaching their declared end date: likely to be put
+    back out to tender. Source: DECP (data.gouv.fr), refreshed weekly. Sorted by
+    end date, soonest first. Each row names the current holder(s) when known.
+
+    Requires Pro tier (the free tier sees the match count only). Use for "which
+    cleaning contracts in the Var end in the next year?" or "when does this
+    town's insurance contract come up again?".
+
+    The end date is DECLARED (notification date + declared duration): depending
+    on the buyer it may or may not include renewal options. Say so when quoting it.
+
+    Args:
+        department: Department code(s) of the place of execution, e.g. "83" or "83,06".
+        cpv: 8-digit CPV code(s), exact match, comma-separated.
+        cpv_family: 2-digit CPV family code(s), e.g. "45" (works), "90" (cleaning, waste).
+        buyer_siret: SIRET (14 digits) of the public buyer.
+        buyer_keyword: Partial buyer name, 3 characters minimum.
+        min_months: End date at least this many months from today (default 3).
+        max_months: End date at most this many months from today (default 18, max 36).
+        page: Page number (1-based).
+        page_size: Results per page (max 50 on Pro).
+    """
+    params = _drop_none({
+        "department": department, "cpv": cpv, "cpv_family": cpv_family,
+        "buyer_siret": buyer_siret, "buyer_keyword": buyer_keyword,
+        "min_months": min_months, "max_months": max_months,
+        "page": page, "page_size": page_size,
+    })
+    return await _get("/renewals", params)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Account / quota
 # ──────────────────────────────────────────────────────────────────────────────
