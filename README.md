@@ -43,7 +43,7 @@ Requires Python 3.10+ and a free API key.
 pip install tenderapi-mcp
 ```
 
-Get a free key at <https://tenderapi.fr/> (100 requests/day), then:
+Get a free key at <https://tenderapi.fr/> (includes one weekly email watch), then:
 
 ```json
 {
@@ -82,11 +82,11 @@ Any MCP client supporting stdio transport works. The `tenderapi-mcp` binary inst
 |------|------|------------------|-------------|
 | `search_tenders` | Free | ✅ | Search BOAMP + TED tenders with typed filters (CPV, region, budget, deadline, source, etc.) |
 | `get_tender` | Free | ✅ | Fetch a single tender by id |
-| `search_awards` | Starter | — | Search award notices (who won which contract, for how much) |
-| `get_award` | Starter | — | Fetch a single award by id |
+| `search_awards` | Pro | — | Search award notices (who won which contract, for how much) |
+| `get_award` | Pro | — | Fetch a single award by id |
 | `winner_intel` | Pro | — | Aggregated winner stats: top companies by CPV / region / year |
 | `me` | any | — | Current key tier, quota remaining, available features |
-| `list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile` | Starter | — | Manage alert profiles (daily email digest, Teams card, or webhook) for new-tender matches |
+| `list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile` | Free (1, weekly email) / Pro | — | Manage alert profiles for new-tender matches: weekly email on a free key; daily email digest, Teams card or webhook on Pro |
 | `upgrade_tier`, `billing_portal` | any | — | Stripe checkout and billing-management links |
 
 PINs (prior-information notices) are excluded from `search_tenders` by default; pass `include_planning=true` to include them. A `deadline_after`/`deadline_before` filter drops notices with no submission deadline unless `include_null_deadline=true`.
@@ -94,9 +94,10 @@ PINs (prior-information notices) are excluded from `search_tenders` by default; 
 ## Tiers
 
 - **Hosted, keyless**: 30 tool calls/day per IP, tenders only
-- **Free key**: 100 req/day, tenders only
-- **Starter** (5 €/month): 500 req/day, adds awards + alert profiles (email digest, Teams or webhook)
-- **Pro** (15 €/month): 1 500 req/day, adds winner intelligence
+- **Free key**: tenders, 1 alert profile (email digest every Monday, to the account address)
+- **Pro** (15 €/month): adds awards and winner intelligence, up to 10 alert profiles delivered every morning (email digest, Teams or webhook)
+
+Request limits only protect the service (free: 1 000/day and 30/min; Pro: 1 500/day and 120/min); paginated lists stop at row 1 000.
 
 Prices are final — no VAT is charged (art. 293 B French tax code). See <https://tenderapi.fr/#pricing>.
 

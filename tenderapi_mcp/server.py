@@ -129,7 +129,8 @@ async def search_tenders(
         published_before: ISO date; published before this date.
         sort: "date" (default — newest first) or "relevance" (BM25 best-match ranking; requires keyword; title matches outweigh description matches 5:1). With "relevance" each result carries a relevance_score (higher = better match, only comparable within one query). Prefer "relevance" when the user wants the most pertinent notices for a topic rather than the most recent ones. "deadline" lists the soonest submission deadline first, notices without a deadline last; use it when the user asks what closes soon, and combine it with status="open" or deadline_after, otherwise the list starts with notices that closed years ago.
         page: 1-indexed page number.
-        page_size: Results per page. Max depends on tier: 20 (free), 50 (Starter/Pro).
+        page_size: Results per page. Max depends on tier: 20 (free), 50 (Pro).
+            Lists stop at row 1000 (page × page_size ≤ 1000): narrow the query instead of paging deeper.
         limit: Alternative to page_size, hard cap on results (server-defined max).
 
     Returns a dict with keys: total, page, page_size, results (list of tenders),
@@ -203,8 +204,8 @@ async def search_awards(
 ) -> dict[str, Any]:
     """Search award notices: who won which public contract, for how much.
 
-    Requires Starter tier or above. If the call returns 402/403, suggest the
-    user upgrade via `upgrade_tier`.
+    Requires the Pro tier. A free key gets the exact match count with the rows
+    locked (see below); if the user wants the rows, `upgrade_tier` opens checkout.
 
     Args:
         cpv: Exact CPV code.
@@ -238,7 +239,7 @@ async def search_awards(
     ALWAYS read `hint` when `total` is 0 — see search_tenders for what it does
     and why acting on it matters.
 
-    `locked: true` means award ROWS require the Starter tier or higher; `total`
+    `locked: true` means award ROWS require the Pro tier; `total`
     is still the exact, unfiltered match count. Report it faithfully: say the
     rows are gated and give the count, do not present it as "no results found".
     Note that `locked` with `total: 0` means the query itself matched nothing —
@@ -266,7 +267,7 @@ async def search_awards(
 async def get_award(award_id: str) -> dict[str, Any]:
     """Fetch the full record of a single award notice by its ID.
 
-    Requires Starter tier or above.
+    Requires the Pro tier.
     """
     return await _get(f"/awards/{award_id}")
 
@@ -330,9 +331,13 @@ async def list_profiles() -> dict[str, Any]:
     """List the matching profiles owned by the authenticated key.
 
     A profile = a saved filter + a delivery channel. New tenders matching the
-    profile's criteria are delivered automatically: a daily EMAIL digest
+    profile's criteria are delivered automatically: an EMAIL digest
     (channel="email"), an Adaptive Card to Microsoft TEAMS (channel="teams"),
     or a per-tender push to a WEBHOOK (channel="webhook").
+
+    Free key: 1 profile, email only, sent to the account address every MONDAY
+    with the week's new notices. Pro: up to 10 profiles, delivered every morning,
+    email, Teams or webhook.
     """
     return await _get("/profiles")
 
@@ -362,8 +367,12 @@ async def create_profile(
     active: bool | None = None,
 ) -> dict[str, Any]:
     """Create a matching profile. New tenders matching the filters are delivered
-    automatically as a daily EMAIL digest (channel="email"), an Adaptive Card to
+    automatically as an EMAIL digest (channel="email"), an Adaptive Card to
     Microsoft TEAMS (channel="teams"), or pushed to a WEBHOOK (channel="webhook").
+
+    Free key: pass channel="email" (Teams and webhook return 403). One profile,
+    delivered every Monday to the account address (email_to is ignored).
+    Pro: up to 10 profiles, delivered every morning, any channel.
 
     At least one filter (keywords, cpv_codes, regions, departments, siret,
     descripteur_keywords, or a budget range) should be set, otherwise the
@@ -371,11 +380,12 @@ async def create_profile(
 
     Args:
         name: Human-readable label.
-        channel: "email" (daily email digest), "teams" (Adaptive Card to a Teams
+        channel: "email" (email digest: weekly on free, daily on Pro), "teams" (Adaptive Card to a Teams
             workflow URL), or "webhook" (per-tender HTTP push). Defaults to "webhook" if omitted.
         webhook_url: Destination URL for channel="webhook" (JSON POST) or channel="teams"
             (paste the Teams workflow's incoming POST URL).
-        email_to: Recipient address for the daily digest (for channel="email").
+        email_to: Recipient address for the digest (channel="email", Pro only;
+            a free key always delivers to its account address).
         siret: Restrict to a specific buyer.
         keywords: List of substrings matched against title/description.
         cpv_codes: List of exact CPV codes.
@@ -452,12 +462,12 @@ async def delete_profile(profile_id: int) -> dict[str, Any]:
 
 @mcp.tool()
 async def upgrade_tier(
-    tier: str,
+    tier: str = "pro",
     success_url: str | None = None,
     cancel_url: str | None = None,
 ) -> dict[str, Any]:
     """Start a Stripe Checkout session to upgrade the authenticated key to a
-    higher tier ("starter" or "pro").
+    higher tier. Only "pro" is sold (15 €/month); "starter" was retired on 2026-10-14.
 
     IMPORTANT: this does NOT charge anything by itself. It returns a
     `checkout_url` that the agent MUST present to the human user. Payment
@@ -465,10 +475,11 @@ async def upgrade_tier(
     automatically upgraded.
 
     Use this when a tool call fails with 402/403 because the feature is gated
-    (e.g. `search_awards` and `winner_intel` need Starter+ / Pro).
+    (`search_awards`, `get_award` and `winner_intel` need Pro), or when the user
+    wants their watch delivered every morning instead of every Monday.
 
     Args:
-        tier: "starter" or "pro".
+        tier: "pro" (default, the only tier on sale).
         success_url: Where Stripe redirects after successful payment.
         cancel_url: Where Stripe redirects if the user cancels.
 
