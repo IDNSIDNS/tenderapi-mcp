@@ -108,11 +108,11 @@ async def search_tenders(
         cpv: Exact CPV code (e.g. "72000000" for IT services).
         cpv_family: 2-digit CPV family prefix (e.g. "72" matches all IT-services CPVs).
         descripteur: BOAMP business descripteur(s), comma-separated (e.g. "couverture" or "etude,btp"). Case-insensitive substring match; targets MAPA notices that carry no CPV code.
-        keyword: Full-text search across title and description (accent-insensitive). Words are combined with AND — every word must appear in the SAME notice, so a long space-separated list (e.g. "bathymetric hydrographic survey lidar coastal") almost always returns zero results. For a broad topic search, join synonyms with the OR operator instead, e.g. keyword=bathymétrie OR hydrographie OR lidar OR dredging. TED notices are indexed in their publication language (FR/DE/ES/IT/EN), so include each concept in the relevant languages joined by OR. Comma- or pipe-separated lists are NOT parsed as OR.
+        keyword: Full-text search across title, description and BOAMP business descripteurs (accent-insensitive). Words are combined with AND — every word must appear in the SAME notice, so a long space-separated list (e.g. "bathymetric hydrographic survey lidar coastal") almost always returns zero results. For a broad topic search, join synonyms with the OR operator instead, e.g. keyword=bathymétrie OR hydrographie OR lidar OR dredging. TED notices are indexed in their publication language (FR/DE/ES/IT/EN), so include each concept in the relevant languages joined by OR. Comma- or pipe-separated lists are NOT parsed as OR.
         region: French region slug, lowercase (e.g. "occitanie", "ile-de-france", "bretagne"). Pre-2016 region names and INSEE region codes ("11", "76", "84") are accepted as aliases.
         department: French department code (e.g. "75", "2A", "974").
-        country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP.
-        source: "boamp" (France) or "ted" (FR/DE/IT/ES/UK). Omit to include both.
+        country: ISO 3166-1 alpha-2 country code (e.g. "FR", "DE"). Alpha-3 (e.g. "FRA") also accepted for supported countries. Defaults to FR for BOAMP. TED data covers FR/DE/IT/ES/BE/LU; "UK" only returns history up to 2020 (Brexit); other countries have no data.
+        source: "boamp" (France) or "ted" (FR/DE/IT/ES/BE/LU, plus UK up to 2020). Omit to include both.
         include_planning: When True, include TED prior-information notices (PINs) that announce upcoming procurements. Excluded by default (not yet biddable, no deadline).
         status: "open" or "closed", nothing else. "open" = submission deadline in the future, or unknown on a notice still published. Awarded contracts are not a tender status: use search_awards for those.
         procedure_type: Procurement procedure (e.g. "open", "restricted", "negotiated").
@@ -430,7 +430,11 @@ async def create_profile(
         email_to: Recipient address for the digest (channel="email", Pro only;
             a free key always delivers to its account address).
         siret: Restrict to a specific buyer.
-        keywords: List of substrings matched against title/description.
+        keywords: List of keywords matched against title/description. Within one entry the
+            words must appear IN ORDER, at most 4 words apart ("maintenance ascenseurs" matches
+            "maintenance des ascenseurs", not "ascenseurs : maintenance"). Accents and case are
+            ignored; short words must stand alone ("EDR" does not match "Friedrich"); a
+            "quoted phrase" must be contiguous. Prefer several short entries over one long one.
         cpv_codes: List of exact CPV codes.
         regions: List of French region slugs.
         departments: List of French department codes.
@@ -476,6 +480,8 @@ async def update_profile(
     """Replace a profile's filters and webhook. Only non-None fields are sent;
     fields left as None keep their current value on the server.
 
+    `keywords` follow the same rule as in create_profile: words in order, at most
+    4 words apart, accents ignored.
     `descripteur_keywords` (with `match_descripteur=True`) matches MAPA notices
     that carry no CPV code. `active=False` pauses webhook deliveries without
     deleting the profile.

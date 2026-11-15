@@ -6,7 +6,7 @@ Expose TenderAPI (French BOAMP + EU TED public procurement data) as MCP tools fo
 
 A thin wrapper over the public REST API at <https://tenderapi.fr>.
 
-Coverage: BOAMP (France) since March 2015, and TED for FR/DE/IT/ES/UK since 2015 (legacy XML format until end 2023, then eForms), refreshed daily.
+Coverage: BOAMP (France) since March 2015, and TED for FR/DE/IT/ES/BE/LU since 2015 (legacy XML format until end 2023, then eForms), refreshed daily. UK is covered up to 2020 only: it no longer publishes on TED since Brexit.
 
 ## Two ways to use it
 
@@ -31,7 +31,7 @@ Claude Desktop / Claude Code:
 }
 ```
 
-Exposes `search_tenders` and `get_tender`. **Anonymous, free, limited to 30 tool calls per day per IP.** No account, nothing to install.
+Exposes `search_tenders`, `get_tender` and `preview_alerts` (simulates an alert profile without creating it: real alert rate, sample titles, what each filter removes). **Anonymous, free, limited to 30 tool calls per day per IP.** No account, nothing to install.
 
 Awards, winner intelligence and alert profiles are not available anonymously — they need a key, see below.
 
