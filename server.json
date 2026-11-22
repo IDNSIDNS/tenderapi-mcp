@@ -13,7 +13,7 @@
       ]
     }
   ],
-  "version": "0.10.2",
+  "version": "0.10.3",
   "repository": {
     "url": "https://github.com/IDNSIDNS/tenderapi-mcp",
     "source": "github"
@@ -22,7 +22,7 @@
     {
       "registryType": "pypi",
       "identifier": "tenderapi-mcp",
-      "version": "0.10.2",
+      "version": "0.10.3",
       "transport": {
         "type": "stdio"
       },

@@ -118,7 +118,7 @@ async def search_tenders(
         procedure_type: Procurement procedure (e.g. "open", "restricted", "negotiated").
         contract_type: "works" | "supplies" | "services".
         buyer_siret: Exact SIRET of the French contracting authority (14 digits).
-        buyer_keyword: Partial match on buyer name.
+        buyer_keyword: Partial match on the buyer name, case- and accent-insensitive ("herault" finds "Hérault"), 3 characters minimum. Several buyers: join with OR, e.g. "Pézenas OR Pignan" (commas are not OR).
         budget_min: Minimum estimated budget, EUR.
         budget_max: Maximum estimated budget, EUR.
         include_null_budget: When True, keep tenders with no budget through budget_min/budget_max filters. Excluded by default (budget is sparse).
@@ -165,11 +165,16 @@ async def search_tenders(
 
 
 @mcp.tool()
-async def get_tender(tender_id: str) -> dict[str, Any]:
+async def get_tender(tender_id: int | str) -> dict[str, Any]:
     """Fetch the full record of a single tender by its ID.
 
     Use this after `search_tenders` to get the complete details (description,
     documents, contact info, raw fields) of a specific notice.
+
+    Args:
+        tender_id: The integer `id` returned by search_tenders (e.g. 3780679), passed
+            as is. The publisher reference is accepted too: BOAMP `source_id`
+            "26-79926" or TED "510250-2026". Not the notice URL.
     """
     return await _get(f"/tenders/{tender_id}")
 
@@ -220,7 +225,7 @@ async def search_awards(
         winner_siret: Exact winner SIRET (14 digits — one establishment).
         winner_siren: Winner SIREN (9 digits — company level; matches every establishment of the company). Prefer this to aggregate a whole group.
         buyer_siret: Exact buyer SIRET.
-        buyer_keyword: Partial match on buyer name.
+        buyer_keyword: Partial match on the buyer name, case- and accent-insensitive ("herault" finds "Hérault"), 3 characters minimum. Several buyers: join with OR, e.g. "Pézenas OR Pignan" (commas are not OR).
         keyword: Full-text search across the award notice text (accent-insensitive). Words are combined with AND — every word must appear in the same notice. Join synonyms with the OR operator for a broad search, e.g. keyword=dragage OR dredging OR draguage. Comma- or pipe-separated lists are NOT parsed as OR.
         amount_min: Minimum contract amount, EUR.
         amount_max: Maximum contract amount, EUR.
@@ -264,10 +269,13 @@ async def search_awards(
 
 
 @mcp.tool()
-async def get_award(award_id: str) -> dict[str, Any]:
+async def get_award(award_id: int | str) -> dict[str, Any]:
     """Fetch the full record of a single award notice by its ID.
 
     Requires the Pro tier.
+
+    Args:
+        award_id: The integer `id` returned by search_awards, passed as is.
     """
     return await _get(f"/awards/{award_id}")
 
@@ -335,7 +343,7 @@ async def search_renewals(
         cpv: 8-digit CPV code(s), exact match, comma-separated.
         cpv_family: 2-digit CPV family code(s), e.g. "45" (works), "90" (cleaning, waste).
         buyer_siret: SIRET (14 digits) of the public buyer.
-        buyer_keyword: Partial buyer name, 3 characters minimum.
+        buyer_keyword: Partial match on the buyer name, case- and accent-insensitive ("herault" finds "Hérault"), 3 characters minimum. Several buyers: join with OR, e.g. "Pézenas OR Pignan" (commas are not OR).
         min_months: End date at least this many months from today (default 3).
         max_months: End date at most this many months from today (default 18, max 36).
         page: Page number (1-based).
